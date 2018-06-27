@@ -21,9 +21,10 @@ const = _const
 # 请求
 const.HTTP_REQUEST_TYPE_CODE_REGISTER = 11                  # 请求注册
 const.HTTP_REQUEST_TYPE_CODE_PHONE_LOGIN = 13               # 登录请求
+const.HTTP_REQUEST_TYPE_CODE_GET_FRIENDS_INFO = 15          # 请求好友信息
 
-# 相应
-const.HTTP_RESPONSE_TYPE_CODE_REGISTER_SUCCESS = 12         # 响应：注册成功
+# 响应
+const.HTTP_RESPONSE_TYPE_CODE_REGISTER_SUCCESS = 12         # 注册成功
 const.HTTP_RESPONSE_TYPE_CODE_REGISTER_PHONE_REPEAT = 14    # 注册手机号重复，注册失败
 const.HTTP_RESPONSE_TYPE_CODE_LOGIN_PHONE_NOT_EXIST = 16    # 请求登录，但手机号尚未注册
 const.HTTP_RESPONSE_TYPE_CODE_LOGIN_PASSWORD_ERROR = 18     # 请求登录，但密码错误
