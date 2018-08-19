@@ -24,7 +24,7 @@ SECRET_KEY = 'cq(a5fxj@l@e8431+1((p0&=m)@1f@jrl$=)_6wwi$pe14)^8n'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.1.105']
+ALLOWED_HOSTS = ['*', ]
 # 让外网访问命令： python manage.py runserver 0.0.0.0:8000 后面的80是端口，随意写
 
 # Application definition
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'weixin',
+    'website',
 ]
 
 MIDDLEWARE = [

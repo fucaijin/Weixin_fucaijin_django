@@ -1,0 +1,7 @@
+<uwsgi>
+    <socket>:8000</socket>
+    <chdir>/home/ubuntu/Weixin_fucaijin_django/Weixin_fucaijin_django</chdir>
+    <module>Weixin_fucaijin_django.wsgi</module>
+    <processes>4</processes>
+    <daemonize>uwsgi.log</daemonize>
+</uwsgi>

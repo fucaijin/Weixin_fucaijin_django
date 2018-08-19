@@ -29,6 +29,8 @@ const.HTTP_RESPONSE_TYPE_CODE_REGISTER_PHONE_REPEAT = 14    # 注册手机号重
 const.HTTP_RESPONSE_TYPE_CODE_LOGIN_PHONE_NOT_EXIST = 16    # 请求登录，但手机号尚未注册
 const.HTTP_RESPONSE_TYPE_CODE_LOGIN_PASSWORD_ERROR = 18     # 请求登录，但密码错误
 const.HTTP_RESPONSE_TYPE_CODE_LOGIN_SUCCESS = 20            # 请求登录，且登录成功
+const.HTTP_RESPONSE_TYPE_CODE_GET_FRIENDS_INFO = 22         # 从登陆页面登陆进主页面后请求获取好友信息的响应码，表示请求到了好友信息
+const.HTTP_RESPONSE_TYPE_CODE_GET_FRIENDS_INFO_NULL = 24    # 从登陆页面登陆进主页面后请求获取好友信息的响应码，表示没有好友
 
 # const.LOGIN_SUCCESS = 15  #
 # const.LOGIN_SUCCESS = 16  #

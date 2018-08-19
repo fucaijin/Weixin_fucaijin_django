@@ -15,10 +15,13 @@ Including another URLconf
 """
 from django.conf.urls import url
 from django.contrib import admin
+
+from website import views
 from weixin.views import login, register
 
 urlpatterns = [
     url(r'^login/', login),
     url(r'^register/', register),
     url(r'^admin/', admin.site.urls),
+    url(r'^index/', views.index),
 ]

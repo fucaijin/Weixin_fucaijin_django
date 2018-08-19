@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 import simplejson
 import json
+from ecdsa import SigningKey
 
 from weixin import const  # 自定义的常量的工具类
 from weixin.models import Person
@@ -14,7 +15,6 @@ class QuerySetEncoder(simplejson.JSONEncoder):
     """
     Encoding QuerySet into JSON format.
     """
-
     def default(self, object):
         try:
             return serializers.serialize("python", object, ensure_ascii=False)
@@ -123,24 +123,54 @@ def get_friends_info(request):
             friends_dict = {}
 
             # 遍历所有好友，取得每个好友的昵称、签名、还有找到头像，并封装到json中，然后返回
-            for friend_phone in friends_list:
+            for index, friend_phone in enumerate(friends_list):
                 friend = Person.objects.get(user_phone=friend_phone)
                 nick_name = friend.nick_name
                 personality_signature = friend.personality_signature
 
-                f = open(friend_phone.join('upload/image/head_sculpture/'), 'rb')  # 二进制方式打开图文件
-                ls_f = base64.b64encode(f.read())  # 读取文件内容，转换为base64编码
+                # 二进制方式打开图文件(图片是根据头像的路径+好友手机号+.png)
+                f = open('.png'.join(friend_phone.join('upload/image/head_sculpture/')), 'rb')
+                head_sculpture_base64 = base64.b64encode(f.read())  # 读取文件内容，转换为base64编码
                 f.close()
 
-                friend_info_dict = {"nick_name": nick_name, "personality_signature": personality_signature}
-                friends_dict.update(friend_info_dict)  # 将单个的好友信息装到好友字典内
+                friend_info_dict = {
+                    "nick_name": nick_name,
+                    "personality_signature": personality_signature,
+                    "head_sculpture_base64": head_sculpture_base64
+                }
 
-                # 然后查询的时候，判断字符串是否包含有：号码 + e
-                # 有的话，就查询那个号码的字段，查询昵称、签名、还有找到头像返回
-                # 如果没有查到，就返回没找到
+                friends_dict.update({str(index): friend_info_dict})  # 将单个的好友信息装到好友字典内
+
+            result = {"code": const.HTTP_RESPONSE_TYPE_CODE_GET_FRIENDS_INFO, "content": friends_dict}
+            # 最终的结果类似于这样：↓
+            # result = {
+            #     "code": const.HTTP_RESPONSE_TYPE_CODE_GET_FRIENDS_INFO,
+            #     "content": {
+            #         "1":{
+            #             "nick_name": nick_name,
+            #             "personality_signature": personality_signature,
+            #             "head_sculpture_base64": head_sculpture_base64
+            #             },
+            #
+            #         "2":{
+            #             "nick_name": nick_name,
+            #             "personality_signature": personality_signature,
+            #             "head_sculpture_base64": head_sculpture_base64
+            #             },
+            #
+            #         "3":{
+            #             "nick_name": nick_name,
+            #             "personality_signature": personality_signature,
+            #             "head_sculpture_base64": head_sculpture_base64
+            #             }
+            #     }
+            # }
+            result = simplejson.dumps(result, cls=QuerySetEncoder)
+            return HttpResponse(result)
         else:
-            # TODO 没有好友
-            pass
+            result = {"code": const.HTTP_RESPONSE_TYPE_CODE_GET_FRIENDS_INFO_NULL, "content": "你目前没有好友"}
+            result = simplejson.dumps(result, cls=QuerySetEncoder)
+            return HttpResponse(result)
 
 
 def add_friends(request):
