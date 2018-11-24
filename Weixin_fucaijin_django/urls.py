@@ -17,11 +17,15 @@ from django.conf.urls import url
 from django.contrib import admin
 
 from website import views
-from weixin.views import login, register
+from weixin.views import login, register, search_user_info, test, get_head_sculpture
 
 urlpatterns = [
+    url(r'^$', views.index),
     url(r'^login/', login),
     url(r'^register/', register),
     url(r'^admin/', admin.site.urls),
     url(r'^index/', views.index),
+    url(r'^search_user_info/', search_user_info),
+    url(r'^test/', test),
+    url(r'^get_head_sculpture/', get_head_sculpture),
 ]

@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'cq(a5fxj@l@e8431+1((p0&=m)@1f@jrl$=)_6wwi$pe14)^8n'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*', ]
 # 让外网访问命令： python manage.py runserver 0.0.0.0:8000 后面的80是端口，随意写
@@ -61,6 +61,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
+
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -116,3 +117,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, "/var/www")
+
+ADMINS = [('fucaijin', 'fucaijin@163.com')]
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

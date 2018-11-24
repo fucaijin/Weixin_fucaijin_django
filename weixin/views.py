@@ -1,20 +1,29 @@
+# coding=utf-8
+
 import base64
 import os
+from datetime import datetime
+
+import pytz
 from django.core import serializers
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 import simplejson
 import json
 from ecdsa import SigningKey
+from os import path
+from tencent_im.generate_sig import main
 
 from weixin import const  # 自定义的常量的工具类
 from weixin.models import Person
+from weixin.my_utils import search_head_sculpture
 
 
 class QuerySetEncoder(simplejson.JSONEncoder):
     """
     Encoding QuerySet into JSON format.
     """
+
     def default(self, object):
         try:
             return serializers.serialize("python", object, ensure_ascii=False)
@@ -36,14 +45,23 @@ def login(request):
             person = Person.objects.get(user_phone=phone)  # 查询是否存在此号码，存在则获取此号码所在的对象
         except ObjectDoesNotExist:
             # 如果号码不存在
-            result = {'code': const.HTTP_RESPONSE_TYPE_CODE_LOGIN_PHONE_NOT_EXIST, 'content': "该手机号码未注册"}
+            result_content = {
+                "content": "该手机号码未注册"
+            }
+            result = {'code': const.HTTP_RESPONSE_TYPE_CODE_LOGIN_PHONE_NOT_EXIST, 'content': result_content}
             result = simplejson.dumps(result, cls=QuerySetEncoder)
             return HttpResponse(result)
         else:
             # 手机号存在，判断密码是否正确
             if person.password == password:
                 # 密码正确，创建一个json，把响应类型码和正文都返回
-                result = {'code': const.HTTP_RESPONSE_TYPE_CODE_LOGIN_SUCCESS, 'content': "登录成功"}
+                # 返回腾讯im sdk的usersig
+                usersig = main(phone)
+                result_content = {
+                    "usersig": usersig,
+                    "content": "登录成功"
+                }
+                result = {'code': const.HTTP_RESPONSE_TYPE_CODE_LOGIN_SUCCESS, 'content': result_content}
                 result = simplejson.dumps(result, cls=QuerySetEncoder)
 
                 # 在models创建一个online字段，如果秘密正确，就判断online是否等于true,如果online，
@@ -52,7 +70,10 @@ def login(request):
                 return HttpResponse(result)
             else:
                 # 密码错误
-                result = {'code': const.HTTP_RESPONSE_TYPE_CODE_LOGIN_PASSWORD_ERROR, 'content': "密码错误，请重新输入"}
+                result_content = {
+                    "content": "密码错误，请重新输入"
+                }
+                result = {'code': const.HTTP_RESPONSE_TYPE_CODE_LOGIN_PASSWORD_ERROR, 'content': result_content}
                 result = simplejson.dumps(result, cls=QuerySetEncoder)
                 return HttpResponse(result)
 
@@ -139,6 +160,8 @@ def get_friends_info(request):
                     "head_sculpture_base64": head_sculpture_base64
                 }
 
+                # 字典.update()方法用于更新字典内的键值对，如果没有那个键，就创建，如果有了键就更新值
+                # 此处是将上方的单个好友的信息friend_info_dict(字典)，装到了一个总字典里，然后返回
                 friends_dict.update({str(index): friend_info_dict})  # 将单个的好友信息装到好友字典内
 
             result = {"code": const.HTTP_RESPONSE_TYPE_CODE_GET_FRIENDS_INFO, "content": friends_dict}
@@ -180,11 +203,52 @@ def add_friends(request):
     pass
 
 
-def search_friends(request):
+def search_user_info(request):
     # 根据发过来的请求加好友的号码，搜索是否存在那个号码
     # 如果号码存在，则返回那个号码的头像、签名、昵称，并在手机端显示
     # 如果号码不存在，就返回号码不存在
-    pass
+    """
+    添加好友 → 搜索用户
+    :param request: 请求过来的数据，通过判断数据类型（看是否是微信号，还是手机号，还是QQ好来搜索）
+    :return: 返回搜索结果，如果搜索到则返回昵称，头像(Base64 string)，地区，个性签名等
+    """
+    request_content = json.loads(request.body.decode('utf-8'))
+    info_type = request_content.get('info_type')
+    search_info = request_content.get('search_info')
+
+    try:
+        if info_type == const.INFO_TYPE_WEXIN_ID:
+            person = Person.objects.get(user_id=search_info)
+        elif info_type == const.INFO_TYPE_PHONE:
+            person = Person.objects.get(user_phone=search_info)
+        elif info_type == const.INFO_TYPE_QQ_ID:
+            person = Person.objects.get(qq=search_info)
+    except ObjectDoesNotExist:
+        # 没找到用户
+        result = {'code': const.HTTP_RESPONSE_TYPE_CODE_SEARCH_USER_NOT_FOUND, 'content': "该用户不存在"}
+        result = simplejson.dumps(result, cls=QuerySetEncoder)
+        return HttpResponse(result)
+    else:
+        # 昵称、性别、个性签名、地区、头像
+        nick_name = person.nick_name
+        sex = person.sex
+        personality_signature = person.personality_signature
+        area = person.area
+        phone = person.user_phone
+        # 根据手机号搜索头像，并生成Base64的String
+        head_sculpture_base64 = search_head_sculpture(phone)
+
+        user_info = {
+            'nick_name': nick_name,
+            'sex': sex,
+            'personality_signature': personality_signature,
+            'area': area,
+            'head_sculpture_base64': head_sculpture_base64
+        }
+
+        result = {'code': const.HTTP_RESPONSE_TYPE_CODE_SEARCH_USER_FOUND, 'content': user_info}
+        result = simplejson.dumps(result, cls=QuerySetEncoder)
+        return HttpResponse(result)
 
 
 def send_msg(request):
@@ -194,3 +258,25 @@ def send_msg(request):
     """
     # 获取源号码，目标号码，信息，信息类型，并推送到目标号码上
     pass
+
+
+def test(request):
+    """
+    测试是否能正常连接服务器的方法
+    :param request:
+    :return:
+    """
+    tz = pytz.timezone('Asia/Shanghai')
+    now_time = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')  # 获取当前时间，并格式化成指定格式的字符串
+    result = {'content': "测试成功 - " + now_time}
+    result = simplejson.dumps(result, cls=QuerySetEncoder)
+    print(result)
+    return HttpResponse(result)
+
+
+def get_head_sculpture(request):
+    print(request.body)
+    d = os.path.abspath('.')  # 获取当前项目目录，如果是'..'则是获取当前项目的上一级目录
+    image_path = path.join(d, "upload/image/head_sculpture/%s.png" % str(request.body).replace("'", "").replace("b", ""))
+    image_data = open(image_path, "rb").read()
+    return HttpResponse(image_data, content_type="image/png")
